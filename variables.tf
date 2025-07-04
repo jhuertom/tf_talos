@@ -3,7 +3,7 @@
 ###################################################
 locals {
   talos = {
-    version = "v1.9.5"
+    version = "v1.10.4"
   }
   talos_nodes = ["jacinta", "antonio", "roman"]
   cluster_name = "homelab"
