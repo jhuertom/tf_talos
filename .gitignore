@@ -1,5 +1,5 @@
 *.auto.tfvars
 .terraform
 .terraform.lock.hcl
-*.tfstate
-kubeconfig.yaml
+*.tfstate*
+kubeconfig*

@@ -6,10 +6,10 @@ resource "proxmox_virtual_environment_download_file" "talos_nocloud_image" {
   content_type            = "iso"
   datastore_id            = "local"
   node_name               = each.key
-  file_name               = "talos-${local.talos.version}-nocloud-amd64.img"
+  file_name               = "talos-${local.talos.version}-nocloud-amd64-${terraform.workspace}.img"
   url                     = "https://factory.talos.dev/image/787b79bb847a07ebb9ae37396d015617266b1cef861107eaec85968ad7b40618/${local.talos.version}/nocloud-amd64.raw.gz"
   decompression_algorithm = "gz"
-  overwrite               = false
+  overwrite               = true
 }
 
 ###################################################
@@ -19,8 +19,8 @@ resource "proxmox_virtual_environment_vm" "talos" {
   for_each    = local.talos_vms
 
   name        = each.value.name
-  description = "Managed by Terraform"
-  tags        = ["terraform"]
+  description = "Managed by Terraform - ${terraform.workspace}"
+  tags        = ["terraform", terraform.workspace]
   node_name   = each.value.node
   on_boot     = true
 
@@ -70,10 +70,20 @@ resource "proxmox_virtual_environment_vm" "talos" {
 ###################################################
 # CLUSTER CREATION
 ###################################################
-resource "talos_machine_secrets" "machine_secrets" {}
+resource "talos_machine_secrets" "machine_secrets" {
+  # Agregar un sufijo único por workspace
+  depends_on = [time_sleep.wait_for_vms]
+}
+
+# Agregar un recurso de espera para asegurar que las VMs estén listas
+resource "time_sleep" "wait_for_vms" {
+  depends_on = [proxmox_virtual_environment_vm.talos]
+  create_duration = "30s"
+}
 
 data "talos_client_configuration" "talosconfig" {
-  cluster_name         = local.cluster_name
+  depends_on           = [talos_machine_secrets.machine_secrets]
+  cluster_name         = "${local.cluster_name}-${terraform.workspace}"
   client_configuration = talos_machine_secrets.machine_secrets.client_configuration
   endpoints            = [for vm in local.talos_vms : vm.ip_addr if vm.role == "controlplane"]
 }
@@ -81,8 +91,9 @@ data "talos_client_configuration" "talosconfig" {
 data "talos_machine_configuration" "machineconfig" {
   for_each = local.talos_vms
 
-  cluster_name     = local.cluster_name
-  cluster_endpoint = "https://${local.talos_vms["talos_cp_01"].ip_addr}:6443"
+  depends_on       = [talos_machine_secrets.machine_secrets]
+  cluster_name     = "${local.cluster_name}-${terraform.workspace}"
+  cluster_endpoint = "https://${local.talos_vms[local.control_plane_key].ip_addr}:6443"
   machine_type     = each.value.role
   machine_secrets  = talos_machine_secrets.machine_secrets.machine_secrets
 }
@@ -90,7 +101,10 @@ data "talos_machine_configuration" "machineconfig" {
 resource "talos_machine_configuration_apply" "apply" {
   for_each = local.talos_vms
 
-  depends_on = [proxmox_virtual_environment_vm.talos]
+  depends_on = [
+    proxmox_virtual_environment_vm.talos,
+    time_sleep.wait_for_vms
+  ]
 
   client_configuration        = talos_machine_secrets.machine_secrets.client_configuration
   machine_configuration_input = data.talos_machine_configuration.machineconfig[each.key].machine_configuration
@@ -98,9 +112,10 @@ resource "talos_machine_configuration_apply" "apply" {
 }
 
 resource "talos_machine_bootstrap" "bootstrap" {
-  depends_on           = [talos_machine_configuration_apply.apply["talos_cp_01"]]
+  depends_on           = [talos_machine_configuration_apply.apply]
   client_configuration = talos_machine_secrets.machine_secrets.client_configuration
-  node                 = local.talos_vms["talos_cp_01"].ip_addr
+  node                 = local.talos_vms[local.control_plane_key].ip_addr
+  
 }
 
 data "talos_cluster_health" "health" {
@@ -114,7 +129,8 @@ data "talos_cluster_health" "health" {
 data "talos_cluster_kubeconfig" "kubeconfig" {
   depends_on           = [data.talos_cluster_health.health]
   client_configuration = talos_machine_secrets.machine_secrets.client_configuration
-  node                 = local.talos_vms["talos_cp_01"].ip_addr
+  node                 = local.talos_vms[local.control_plane_key].ip_addr
+
 }
 
 output "talosconfig" {
@@ -130,5 +146,5 @@ output "kubeconfig" {
 resource "local_file" "kubeconfig" {
   depends_on = [data.talos_cluster_kubeconfig.kubeconfig]
   content    = data.talos_cluster_kubeconfig.kubeconfig.kubeconfig_raw
-  filename   = "${path.module}/kubeconfig.yaml"
+  filename   = "${path.module}/kubeconfig-${terraform.workspace}.yaml"
 }
