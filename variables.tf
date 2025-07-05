@@ -7,6 +7,7 @@ locals {
   }
   talos_nodes = ["jacinta", "antonio", "roman"]
   talos_gateway = "192.168.2.1"
+  talos_dns = "192.168.3.10"
   cluster_name = "homelab"
 
   talos_config = {
@@ -15,7 +16,7 @@ locals {
         name       = "talos-cp-01"
         role       = "controlplane"
         node       = "jacinta"
-        ip_addr    = "192.168.2.180"
+        ip_addr    = "192.168.3.40"
         cores      = 2
         memory     = 4096
         disk_size  = 20
@@ -24,7 +25,7 @@ locals {
         name       = "talos-worker-01"
         role       = "worker"
         node       = "jacinta"
-        ip_addr    = "192.168.2.190"
+        ip_addr    = "192.168.3.50"
         cores      = 4
         memory     = 4096
         disk_size  = 20
@@ -33,7 +34,7 @@ locals {
         name       = "talos-cp-02"
         role       = "controlplane"
         node       = "roman"
-        ip_addr    = "192.168.2.181"
+        ip_addr    = "192.168.3.41"
         cores      = 2
         memory     = 4096
         disk_size  = 20
@@ -42,7 +43,7 @@ locals {
         name       = "talos-worker-02"
         role       = "worker"
         node       = "roman"
-        ip_addr    = "192.168.2.191"
+        ip_addr    = "192.168.3.51"
         cores      = 4
         memory     = 4096
         disk_size  = 20
@@ -51,7 +52,7 @@ locals {
         name       = "talos-cp-03"
         role       = "controlplane"
         node       = "antonio"
-        ip_addr    = "192.168.2.182"
+        ip_addr    = "192.168.3.42"
         cores      = 2
         memory     = 4096
         disk_size  = 20
@@ -60,7 +61,7 @@ locals {
         name       = "talos-worker-03"
         role       = "worker"
         node       = "antonio"
-        ip_addr    = "192.168.2.192"
+        ip_addr    = "192.168.3.52"
         cores      = 4
         memory     = 4096
         disk_size  = 20
@@ -74,7 +75,7 @@ locals {
         name       = "rancher-cp-01"
         role       = "controlplane"
         node       = "jacinta"
-        ip_addr    = "192.168.2.160"
+        ip_addr    = "192.168.3.20"
         cores      = 2
         memory     = 4096
         disk_size  = 20
@@ -83,7 +84,7 @@ locals {
         name       = "rancher-worker-01"
         role       = "worker"
         node       = "jacinta"
-        ip_addr    = "192.168.2.170"
+        ip_addr    = "192.168.3.30"
         cores      = 4
         memory     = 4096
         disk_size  = 20

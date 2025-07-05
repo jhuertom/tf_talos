@@ -55,9 +55,13 @@ resource "proxmox_virtual_environment_vm" "talos" {
 
   initialization {
     datastore_id = "local"
+    dns {
+      domain  = "tu-dominio.local"
+      servers = split(",", local.talos_dns)
+    }
     ip_config {
       ipv4 {
-        address = "${each.value.ip_addr}/24"
+        address = "${each.value.ip_addr}/23"
         gateway = local.talos_gateway
       }
       ipv6 {
@@ -133,15 +137,15 @@ data "talos_cluster_kubeconfig" "kubeconfig" {
 
 }
 
-output "talosconfig" {
-  value     = data.talos_client_configuration.talosconfig.talos_config
-  sensitive = true
-}
-
-output "kubeconfig" {
-  value     = data.talos_cluster_kubeconfig.kubeconfig.kubeconfig_raw
-  sensitive = true
-}
+# output "talosconfig" {
+#   value     = data.talos_client_configuration.talosconfig.talos_config
+#   sensitive = true
+# }
+# 
+# output "kubeconfig" {
+#   value     = data.talos_cluster_kubeconfig.kubeconfig.kubeconfig_raw
+#   sensitive = true
+# }
 
 resource "local_file" "kubeconfig" {
   depends_on = [data.talos_cluster_kubeconfig.kubeconfig]
